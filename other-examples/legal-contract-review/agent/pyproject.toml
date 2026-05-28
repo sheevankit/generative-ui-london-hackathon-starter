@@ -1,0 +1,9 @@
+[project]
+name = "legal-review-agent"
+version = "0.1.0"
+description = "LangGraph agent for the Contract Review Copilot example."
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
