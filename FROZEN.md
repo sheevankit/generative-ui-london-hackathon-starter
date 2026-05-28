@@ -26,11 +26,19 @@ a Google or upstream change is caught before event day.
 
 ### Why this default (and why NOT 3.5 Flash)
 
-1. **Agentic-tuned.** Google positions Gemini Flash as the agentic flagship.
-2. **Sponsor alignment.** Google is the venue + platform sponsor.
-3. **Free tier.** No credit card required.
-4. **Zero code rewrite.** OpenAI-compat endpoint works with existing `ChatOpenAI`.
-5. **Multi-turn compatible with `langchain-openai`.** This is the load-bearing one.
+`gemini-3.5-flash` is the **current** Google Flash model (released 2026-05-19,
+beats 3.1 Pro on agentic benchmarks at Flash pricing, 1M context). It is the
+model we'd ship if we could. We can't, because of a client-side compatibility
+issue, not because 2.5 is preferable.
+
+The actual reasoning, in order of importance:
+
+1. **Multi-turn compatible with `langchain-openai 1.1.9`.** This is load-
+   bearing. See "The Gemini 3.5 Flash trap" below.
+2. **Agentic-tuned.** Google positions Gemini Flash as the agentic flagship.
+3. **Sponsor alignment.** Google is the venue + platform sponsor.
+4. **Free tier.** No credit card required.
+5. **Zero code rewrite.** OpenAI-compat endpoint works with existing `ChatOpenAI`.
 
 #### The Gemini 3.5 Flash trap
 
@@ -46,13 +54,25 @@ https://ai.google.dev/gemini-api/docs/thought-signatures
 Gemini 3.x emits "thought signatures" with every tool call and requires the
 client to replay them on subsequent turns. `langchain-openai 1.1.9` does not
 implement this — it strips thought metadata. `reasoning_effort: "none"` does
-NOT disable the requirement.
+NOT disable the requirement. Re-confirmed by re-probing on 2026-05-28 after
+the initial fork-date probe.
 
-**Upgrade path to 3.5 Flash:** wait until langchain-openai (or another OpenAI-
-compatible client) ships thought_signature passthrough, OR switch the agent
-to `langchain-google-genai` for native Gemini multi-turn handling. Neither is
-in scope for the hackathon starter. CI should re-run the multi-turn probe
-nightly so the day langchain-openai gains support, we can flip the default.
+**Upgrade paths to 3.5 Flash (priority order):**
+
+1. **Switch primary LLM to `langchain-google-genai` (native Gemini SDK).**
+   The native SDK handles thought_signature replay correctly. ~5-line swap
+   in `agent/main.py` and `agent/src/a2ui_dynamic_schema.py`. Adds a new
+   dep and a different `model_kwargs` surface. This is the only available
+   path *today*.
+2. **Wait for `langchain-openai` (or any OpenAI-compatible client) to ship
+   thought_signature passthrough.** Then we keep the OpenAI-compat code
+   path. The nightly CI probe (see `.github/workflows/nightly-gemini-probe.yml`)
+   catches this the day it lands.
+
+The `gemini-2.5-flash` default is the safest choice for the 5-hour build
+window — it's the latest model that "just works" with the inherited
+`langchain-openai` code path. Teams that want 3.5 Flash today can apply
+path (1) themselves following the same pattern.
 
 ### Models that 404'd in the probe (do not use)
 
