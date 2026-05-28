@@ -18,9 +18,11 @@
     "explain": "tsx scripts/explain.ts",
     "new-widget": "./scripts/new-widget.sh",
     "theme:reset": "tsx scripts/theme-reset.ts",
-    "test:widgets": "tsx scripts/test-widgets.ts"
+    "test:widgets": "tsx scripts/test-widgets.ts",
+    "check-a2a": "tsx a2a/compliance/check.ts"
   },
   "dependencies": {
+    "@ag-ui/a2a-middleware": "0.0.2",
     "@copilotkit/a2ui-renderer": "1.56.5",
     "@copilotkit/react-core": "1.56.5",
     "@copilotkit/runtime": "1.56.5",
