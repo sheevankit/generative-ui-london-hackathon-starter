@@ -8,13 +8,8 @@ import os
 from copilotkit import CopilotKitMiddleware, StateStreamingMiddleware, StateItem
 from langchain.agents import create_agent
 
-# Data & state tools
-from src.query import query_data
-from src.todos import AgentState, todo_tools
-
-# A2UI tools
-from src.a2ui_dynamic_schema import generate_a2ui
-from src.a2ui_fixed_schema import search_flights
+# State schema is domain-agnostic; tools are loaded per-domain below.
+from src.todos import AgentState
 
 from langchain_openai import ChatOpenAI
 
@@ -45,18 +40,32 @@ model = ChatOpenAI(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CUSTOMIZATION SEAM #5 — Switch domain (DOMAIN env)
 # See HACKATHON.md §5 for the full recipe.
-# Pattern to copy: agent/src/domains/shopping/ (canonical stub, landed by E)
+# Pattern to copy: agent/src/domains/shopping/ (canonical stub).
 #
-# Set DOMAIN=<name> in .env to swap the whole data+prompt bundle. When E
-# lands the domain loader, this is where the domain dispatch happens.
-# Today (pre-E), the inherited default demo (todos + dashboards + flights)
-# is hard-wired; the DOMAIN env is read but not yet routed.
+# Set DOMAIN=<name> in .env to swap the whole tool bundle + system prompt.
+# Ships with two domains:
+#   - default  → flights + dashboards + todos (inherited base demo)
+#   - shopping → canonical stub: product search + order dashboards
+# To add your own, copy agent/src/domains/shopping/ and add an elif branch.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DOMAIN = os.getenv("DOMAIN", "default")
+if DOMAIN == "default":
+    from src.domains.default.tools import default_tools as _tools
+    from src.domains.default.prompts import SYSTEM_PROMPT as _system_prompt
+elif DOMAIN == "shopping":
+    from src.a2ui_dynamic_schema import generate_a2ui
+    from src.domains.shopping.tools import shopping_tools
+    from src.domains.shopping.prompts import SYSTEM_PROMPT as _system_prompt
+    _tools = [generate_a2ui, *shopping_tools]
+else:
+    raise ValueError(
+        f"Unknown DOMAIN={DOMAIN!r}. Set DOMAIN=default or DOMAIN=shopping in .env, "
+        f"or add a new branch in agent/main.py. See HACKATHON.md §5."
+    )
 
 agent = create_agent(
     model=model,
-    tools=[query_data, *todo_tools, generate_a2ui, search_flights],
+    tools=_tools,
     middleware=[
         CopilotKitMiddleware(),
         StateStreamingMiddleware(
@@ -64,18 +73,7 @@ agent = create_agent(
         ),
     ],
     state_schema=AgentState,
-    system_prompt="""
-        You are a polished, professional demo assistant. Keep responses to 1-2 sentences.
-
-        Tool guidance:
-        - Flights: call search_flights to show flight cards with a pre-built schema.
-        - Dashboards & rich UI: call generate_a2ui to create dashboard UIs with metrics,
-          charts, tables, and cards. It handles rendering automatically.
-        - Charts: call query_data first, then render with the chart component.
-        - Todos: enable app mode first, then manage todos.
-        - A2UI actions: when you see a log_a2ui_event result (e.g. "view_details"),
-          respond with a brief confirmation. The UI already updated on the frontend.
-    """,
+    system_prompt=_system_prompt,
 )
 
 graph = agent
