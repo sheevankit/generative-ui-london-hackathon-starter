@@ -224,7 +224,62 @@ async function portFree(port: number): Promise<boolean> {
   });
 }
 
+async function validateGeminiKey(key: string): Promise<{ ok: boolean; detail: string }> {
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=1`,
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (res.ok) return { ok: true, detail: "key accepted (HTTP 200)" };
+    if (res.status === 400) return { ok: false, detail: "key rejected — invalid format (HTTP 400)" };
+    if (res.status === 403) return { ok: false, detail: "key rejected — permission denied (HTTP 403)" };
+    return { ok: false, detail: `unexpected response (HTTP ${res.status})` };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, detail: `request failed: ${msg}` };
+  }
+}
+
 async function main(): Promise<void> {
+  // Gemini key live validation (async — needs the key resolved in the sync block above)
+  {
+    const offline = process.env.OFFLINE === "1";
+    let gemini = process.env.GEMINI_API_KEY;
+    if (!gemini && !offline) {
+      for (const envPath of [join(REPO_ROOT, "agent", ".env"), join(REPO_ROOT, ".env")]) {
+        if (existsSync(envPath)) {
+          const contents = readFileSync(envPath, "utf-8");
+          const match = contents.match(/^\s*GEMINI_API_KEY\s*=\s*(.+)\s*$/m);
+          if (match && match[1].trim() && match[1].trim() !== '""' && match[1].trim() !== "''") {
+            gemini = match[1].trim().replace(/^["']|["']$/g, "");
+            break;
+          }
+        }
+      }
+    }
+
+    if (offline) {
+      add({ name: "GEMINI_API_KEY valid", pass: true, detail: "OFFLINE=1 — skipped" });
+    } else if (!gemini) {
+      add({
+        name: "GEMINI_API_KEY valid",
+        pass: false,
+        detail: "no key to validate",
+        hint: "Set GEMINI_API_KEY in .env — get a free key: https://aistudio.google.com/apikey",
+      });
+    } else {
+      const { ok, detail } = await validateGeminiKey(gemini);
+      add({
+        name: "GEMINI_API_KEY valid",
+        pass: ok,
+        detail,
+        hint: ok
+          ? undefined
+          : "Get a valid free-tier key: https://aistudio.google.com/apikey — update GEMINI_API_KEY in .env",
+      });
+    }
+  }
+
   // Port checks (async)
   const port3000 = await portFree(3000);
   add({

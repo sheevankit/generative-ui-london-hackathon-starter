@@ -1,8 +1,9 @@
 import {
   CopilotRuntime,
-  createCopilotRuntimeHandler,
+  createCopilotEndpoint,
 } from "@copilotkit/runtime/v2";
 import { HttpAgent } from "@ag-ui/client";
+import { handle } from "hono/vercel";
 
 const FIXED_AGENT_URL =
   process.env.FIXED_AGENT_URL ?? "http://localhost:8123/fixed";
@@ -14,9 +15,6 @@ const dynamicAgent = new HttpAgent({ url: DYNAMIC_AGENT_URL });
 
 const runtime = new CopilotRuntime({
   agents: {
-    // CopilotKit's V2 client expects an agent named "default" for any hook
-    // that doesn't pass an explicit agentId (e.g. our root provider mounted
-    // on pages that don't render a chat). We alias it to the fixed agent.
     default: fixedAgent,
     fixed_agent: fixedAgent,
     dynamic_agent: dynamicAgent,
@@ -34,12 +32,12 @@ const runtime = new CopilotRuntime({
   },
 });
 
-const handler = createCopilotRuntimeHandler({
+const app = createCopilotEndpoint({
   runtime,
   // Isolated from the host's v1 route at /api/copilotkit/[[...slug]].
   // The pdf-analyst Providers point CopilotKit's runtimeUrl here.
   basePath: "/api/copilotkit-pdf",
-  mode: "single-route",
 });
 
-export { handler as POST };
+export const GET = handle(app);
+export const POST = handle(app);
