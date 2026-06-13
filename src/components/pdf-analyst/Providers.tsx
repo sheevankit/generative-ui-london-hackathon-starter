@@ -18,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <CopilotKit
       runtimeUrl="/api/copilotkit-pdf"
+      useSingleEndpoint={false}
       renderActivityMessages={RENDERERS}
     >
       {children}

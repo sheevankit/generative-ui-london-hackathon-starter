@@ -134,6 +134,55 @@
   background: var(--surface) !important;
 }
 
+/* ── Input toolbar dark-mode colour fix ──────────────────────────
+ * CopilotKit's button variant chatInputToolbarSecondary hardcodes
+ * cpk:dark:text-white on the + and send buttons. The white pill
+ * background makes icons invisible. Override by resetting the CopilotKit
+ * dark foreground tokens on the input pill wrapper so all toolbar icons
+ * resolve to near-black. */
+.dark .pdf-analyst-root [data-copilotkit] [data-testid="copilot-chat-input"],
+.pdf-analyst-root [data-copilotkit].dark [data-testid="copilot-chat-input"] {
+  --foreground: #010507;
+  --popover-foreground: #010507;
+  color: #010507;
+}
+
+/* Belt-and-braces: force the icon color directly on the buttons */
+.dark .pdf-analyst-root [data-copilotkit] [data-testid="copilot-add-menu-button"],
+.dark .pdf-analyst-root [data-copilotkit] [data-testid="copilot-send-button"],
+.pdf-analyst-root [data-copilotkit] [data-testid="copilot-add-menu-button"],
+.pdf-analyst-root [data-copilotkit] [data-testid="copilot-send-button"] {
+  color: #444444 !important;
+}
+
+/* Radix dropdown portal — has data-copilotkit so dark theme applies.
+ * In dark mode: dark bg + white text = invisible on the dark chat panel.
+ * Force light theme on the dropdown so it's legible. */
+[data-copilotkit][data-slot="dropdown-menu-content"],
+.dark [data-copilotkit][data-slot="dropdown-menu-content"] {
+  --background: #ffffff !important;
+  --foreground: #010507 !important;
+  --popover: #ffffff !important;
+  --popover-foreground: #010507 !important;
+  --accent: #f0f0f5 !important;
+  --accent-foreground: #010507 !important;
+  background-color: #ffffff !important;
+  color: #010507 !important;
+}
+
+/* Chat input text colour — dark-mode fix.
+ * When the OS is in dark mode, .dark lands on <html> and CopilotKit's own
+ * sheet sets --foreground to near-white inside [data-copilotkit]. The
+ * textarea inherits that colour and types white-on-white against the white
+ * pill background. Force near-black at every dark-mode variant. */
+.pdf-analyst-root [data-copilotkit] textarea,
+.dark .pdf-analyst-root [data-copilotkit] textarea,
+.pdf-analyst-root .dark [data-copilotkit] textarea,
+.pdf-analyst-root [data-copilotkit].dark textarea {
+  color: #010507 !important;
+  -webkit-text-fill-color: #010507 !important;
+}
+
 /* Breathing room around the chat input. CopilotChat wraps the input bar
  * in its `bottomAnchored` container; without padding it sits flush
  * against the panel edges and the rounded border touches the wall. */

@@ -216,6 +216,19 @@ html {
   margin-bottom: 12px;
 }
 
+/* (4) Ensure chat textarea text is always visible.
+ *     When .dark is on <html>, CopilotKit's own sheet sets
+ *     --foreground to near-white inside [data-copilotkit]. The textarea
+ *     inherits that and types white-on-white against the white pill.
+ *     Override at every dark-mode selector variant CopilotKit uses. */
+[data-copilotkit] textarea,
+[data-copilotkit] [data-testid="copilot-chat-input"] textarea,
+.dark [data-copilotkit] textarea,
+[data-copilotkit].dark textarea {
+  color: #010507 !important;
+  -webkit-text-fill-color: #010507 !important;
+}
+
 /* (3) Opaque background on every internal chat element.
  *     CopilotKit's Sidebar (aside) and Popup (div) wrappers paint a
  *     solid bg-background, and that token is inherited downwards
